@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Từ vựng - cache từ AI và Dictionary API
+model Word {
+  id           String   @id @default(cuid())
+  english      String   @unique
+  vietnamese   String   // Nghĩa tiếng Việt
+  phonetic     String?  // Phiên âm
+  partOfSpeech String?  // Loại từ (noun, verb, adj...)
+  definitions  String?  // Định nghĩa (JSON array)
+  examples     String?  // Ví dụ (JSON array)
+  synonyms     String?  // Từ đồng nghĩa (JSON array)
+  antonyms     String?  // Từ trái nghĩa (JSON array)
+  audioUrl     String?  // Link phát âm
+  category     String?  // Topic: daily, travel, business...
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Deck flashcard
+model Deck {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  cardCount   Int         @default(0)
+  flashcards  Flashcard[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// Flashcard của user
+model Flashcard {
+  id         String   @id @default(cuid())
+  front      String   // Mặt trước (English)
+  back       String   // Mặt sau (Vietnamese)
+  phonetic   String?  // Phiên âm
+  audioUrl   String?  // Link phát âm
+  example    String?  // Câu ví dụ
+  deckId     String
+  deck       Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  easeFactor Float    @default(2.5) // Spaced repetition
+  interval   Int      @default(1) // Số ngày
+  nextReview DateTime @default(now())
+  reviewCount Int     @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Chủ đề ngữ pháp
+model GrammarTopic {
+  id          String          @id @default(cuid())
+  name        String          // Tenses, Articles, Prepositions...
+  nameVi      String          // Tên tiếng Việt
+  description String?
+  icon        String?         // Icon name from lucide
+  order       Int             @default(0)
+  lessons     GrammarLesson[]
+  createdAt   DateTime        @default(now())
+}
+
+// Bài học ngữ pháp
+model GrammarLesson {
+  id        String            @id @default(cuid())
+  topicId   String
+  topic     GrammarTopic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  title     String            // Present Simple
+  titleVi   String            // Thì hiện tại đơn
+  content   String            // Nội dung bài học (Markdown)
+  examples  String            // Ví dụ (JSON array)
+  order     Int               @default(0)
+  exercises GrammarExercise[]
+  createdAt DateTime          @default(now())
+}
+
+// Bài tập ngữ pháp
+model GrammarExercise {
+  id          String        @id @default(cuid())
+  lessonId    String
+  lesson      GrammarLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  question    String        // Câu hỏi
+  questionVi  String?       // Dịch câu hỏi
+  options     String?       // Đáp án (JSON array cho multiple choice)
+  answer      String        // Đáp án đúng
+  explanation String?       // Giải thích
+  explanationVi String?     // Giải thích tiếng Việt
+  type        String        // multiple_choice, fill_blank, reorder
+  createdAt   DateTime      @default(now())
+}
+
+// Bài đọc
+model ReadingPassage {
+  id          String   @id @default(cuid())
+  title       String
+  titleVi     String?  // Tiêu đề tiếng Việt
+  content     String   // Nội dung bài đọc
+  translation String?  // Bản dịch tiếng Việt của content
+  level       String   // beginner, intermediate, advanced
+  category    String   // news, story, science...
+  questions   String   // Câu hỏi (JSON array)
+  vocabulary  String?  // Từ vựng quan trọng (JSON array: [{word, vietnamese, definition}])
+  summary     String?  // Tóm tắt AI
+  summaryVi   String?  // Tóm tắt tiếng Việt
+  createdAt   DateTime @default(now())
+}
+
+// Tiến độ học tập
+model Progress {
+  id        String   @id @default(cuid())
+  category  String   // vocabulary, grammar, reading, flashcard
+  itemId    String   // ID của item đã học
+  score     Int      @default(0)
+  maxScore  Int      @default(100)
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([category, itemId])
+}
+
+// Bài test ôn tập định kỳ
+model ReviewTest {
+  id         String       @id @default(cuid())
+  name       String       // Test name
+  type       String       // vocabulary, grammar, reading, mixed
+  questions  String       // Câu hỏi (JSON array)
+  totalItems Int          // Số câu hỏi
+  timeLimit  Int?         // Giới hạn thời gian (phút)
+  results    TestResult[]
+  createdAt  DateTime     @default(now())
+}
+
+// Kết quả test
+model TestResult {
+  id          String     @id @default(cuid())
+  testId      String
+  test        ReviewTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  score       Int        // Điểm đạt được
+  totalScore  Int        // Tổng điểm
+  percentage  Float      // Phần trăm đúng
+  answers     String     // Chi tiết đáp án (JSON)
+  timeTaken   Int        // Thời gian làm (giây)
+  completedAt DateTime   @default(now())
+}
+
+// Lịch ôn tập (Spaced Repetition)
+model ReviewSchedule {
+  id          String    @id @default(cuid())
+  itemType    String    // word, grammar, flashcard
+  itemId      String    // ID của item cần ôn
+  nextReview  DateTime  // Thời điểm ôn tiếp theo
+  interval    Int       @default(1) // Số ngày
+  easeFactor  Float     @default(2.5)
+  reviewCount Int       @default(0)
+  lastReview  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([itemType, itemId])
+}
+
+// Cache AI responses
+model AICache {
+  id        String   @id @default(cuid())
+  promptHash String  @unique // Hash của prompt để tìm nhanh
+  prompt    String   // Prompt gốc
+  response  String   // Response từ AI
+  provider  String   // gemini, openai, claude, groq, cloudflare
+  model     String?  // Model cụ thể
+  createdAt DateTime @default(now())
+  expiresAt DateTime // Thời điểm hết hạn cache
+}
+
+// Settings
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
