@@ -2,8 +2,9 @@
 
 import { Layout } from '@/components/Layout'
 import Link from 'next/link'
-import { BookOpen, CheckCircle, Loader2, Plus } from 'lucide-react'
+import { BookOpen, CheckCircle, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { LoadingSpinner, EmptyState, Alert } from '@/components/ui'
 
 interface Category {
     id: string
@@ -44,12 +45,9 @@ export default function VocabularyPage() {
         return (
             <Layout>
                 <div className="page-header">
-                    <h1 className="page-title">Từ vựng theo chủ đề 📖</h1>
+                    <h1 className="page-title">Từ vựng theo chủ đề</h1>
                 </div>
-                <div style={{ textAlign: 'center', padding: '3rem' }}>
-                    <Loader2 className="spinner" size={48} />
-                    <p style={{ marginTop: '1rem', color: 'var(--gray-500)' }}>Đang tải...</p>
-                </div>
+                <LoadingSpinner fullPage text="Đang tải..." />
             </Layout>
         )
     }
@@ -58,11 +56,9 @@ export default function VocabularyPage() {
         return (
             <Layout>
                 <div className="page-header">
-                    <h1 className="page-title">Từ vựng theo chủ đề 📖</h1>
+                    <h1 className="page-title">Từ vựng theo chủ đề</h1>
                 </div>
-                <div className="error-box">
-                    <p>{error}</p>
-                </div>
+                <Alert variant="error">{error}</Alert>
             </Layout>
         )
     }
@@ -72,7 +68,7 @@ export default function VocabularyPage() {
     return (
         <Layout>
             <div className="page-header">
-                <h1 className="page-title">Từ vựng theo chủ đề 📖</h1>
+                <h1 className="page-title">Từ vựng theo chủ đề</h1>
                 <p className="page-subtitle">
                     Học từ vựng theo các chủ đề phổ biến trong cuộc sống
                 </p>
@@ -118,15 +114,17 @@ export default function VocabularyPage() {
             </h2>
             
             {categories.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-                    <p style={{ color: 'var(--gray-500)', marginBottom: '1rem' }}>
-                        Chưa có từ vựng nào. Hãy tạo từ vựng mới!
-                    </p>
-                    <Link href="/create?tab=vocabulary" className="btn btn-primary">
-                        <Plus size={18} />
-                        Tạo từ vựng đầu tiên
-                    </Link>
-                </div>
+                <EmptyState
+                    icon="📚"
+                    title="Chưa có từ vựng nào"
+                    description="Hãy tạo từ vựng mới để bắt đầu học!"
+                    action={
+                        <Link href="/create?tab=vocabulary" className="btn btn-primary">
+                            <Plus size={18} />
+                            Tạo từ vựng đầu tiên
+                        </Link>
+                    }
+                />
             ) : (
                 <div className="card-grid">
                     {categories.map((category) => (
